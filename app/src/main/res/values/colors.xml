@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 윈도우 배경(스플래시) — 전장 슬레이트. Compose MaterialTheme가 실제 테마를 그린다. -->
+    <color name="battlefield_window">#0F1A20</color>
+    <color name="battlefield_window_light">#E7ECEC</color>
+</resources>
