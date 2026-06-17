@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # 빌드 전용: 체크아웃 후 git 자격증명 보존 불필요
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
