@@ -1,0 +1,17 @@
+# Gradle / build
+.gradle/
+build/
+**/build/
+captures/
+.cxx/
+
+# Local verification harness (도메인 검증 전용, 빌드 산출물)
+.verify/.gradle/
+.verify/build/
+
+# IDE
+.idea/
+*.iml
+local.properties
+.DS_Store
+.verify/.kotlin/
