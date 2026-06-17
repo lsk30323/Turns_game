@@ -65,7 +65,7 @@ fun MinionView(
             .shadow(if (glowing) (6 * pulse).dp else 1.dp, RoundedCornerShape(10.dp))
             .background(g.cardPanel, RoundedCornerShape(10.dp))
             .border(borderWidth, borderColor.copy(alpha = glowAlpha), RoundedCornerShape(10.dp))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .then(onClick?.let { cb -> Modifier.clickable { cb() } } ?: Modifier)
             .padding(4.dp),
     ) {
         // 카드 이름(상단)

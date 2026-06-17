@@ -46,7 +46,7 @@ fun HeroBar(
             .fillMaxWidth()
             .border(2.dp, borderColor, RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .then(onClick?.let { cb -> Modifier.clickable { cb() } } ?: Modifier)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
