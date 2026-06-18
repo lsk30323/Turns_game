@@ -38,10 +38,16 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Test domain + server (rules engine, authoritative PvP server)
+        run: ./gradlew :domain:test :server:test --stacktrace
+
+      - name: Build PvP server distribution
+        run: ./gradlew :server:installDist --stacktrace
+
       - name: Build debug APK (compiles Compose UI + resources)
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      - name: Run unit tests (domain rules)
+      - name: Run app unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       - name: Upload debug APK
@@ -60,4 +66,6 @@ jobs:
           path: |
             app/build/reports/
             app/build/outputs/logs/
+            domain/build/reports/
+            server/build/reports/
           if-no-files-found: ignore
