@@ -12,6 +12,7 @@ class Player(val name: String) {
     val graveyard = Zone("graveyard")
 
     companion object {
-        const val MAX_HERO_HEALTH = 30
+        // 빠른 템포: 영웅 시작/최대 체력 20 (기존 30 → 하향, 게임이 더 빨리 끝남).
+        const val MAX_HERO_HEALTH = 20
     }
 }

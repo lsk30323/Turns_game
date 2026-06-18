@@ -28,8 +28,8 @@ data class CardUi(
 )
 
 data class GameUiState(
-    val myHeroHp: Int = 30,
-    val enemyHeroHp: Int = 30,
+    val myHeroHp: Int = 20,
+    val enemyHeroHp: Int = 20,
     val myMana: Int = 0,
     val myMaxMana: Int = 0,
     val myField: List<MinionUi> = emptyList(),

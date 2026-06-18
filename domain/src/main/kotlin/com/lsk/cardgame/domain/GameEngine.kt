@@ -35,7 +35,8 @@ class GameEngine(
 
     // ───────────────── 게임/턴 수명주기 ─────────────────
 
-    fun startGame(initialDraw: Int = 3) {
+    // 빠른 템포: 시작 손패 4장(기존 3 → +1, 초반부터 플레이가 풍부하게).
+    fun startGame(initialDraw: Int = 4) {
         repeat(initialDraw) {
             draw(human, announce = false)
             draw(ai, announce = false)

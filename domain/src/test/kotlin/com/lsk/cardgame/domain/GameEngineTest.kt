@@ -65,7 +65,7 @@ class GameEngineTest {
         val (engine, me, ai) = newEngine()
         me.mana = 10
         engine.apply(GameAction.PlayCard(CardPool.pyromancer().also { me.hand.cards += it }))
-        assertEquals(28, ai.heroHealth)
+        assertEquals(18, ai.heroHealth) // 20 - 2
     }
 
     @Test fun `죽음의 메아리 - 유령 사망 시 카드 1장 드로우`() {
@@ -90,18 +90,18 @@ class GameEngineTest {
         assertEquals(4, summoner.attack); assertEquals(5, summoner.health)
     }
 
-    @Test fun `주문 - 화염구 6 피해, 치유의 빛 6 회복(최대 30), 화염폭풍 광역 3`() {
+    @Test fun `주문 - 화염구 6 피해, 치유의 빛 6 회복(최대 HP), 화염폭풍 광역 3`() {
         val (engine, me, ai) = newEngine()
         me.mana = 30
         engine.apply(GameAction.PlayCard(CardPool.fireball().also { me.hand.cards += it }))
-        assertEquals(24, ai.heroHealth)
+        assertEquals(14, ai.heroHealth) // 20 - 6
 
-        me.heroHealth = 20
+        me.heroHealth = 10
         engine.apply(GameAction.PlayCard(CardPool.healingLight().also { me.hand.cards += it }))
-        assertEquals(26, me.heroHealth)
-        me.heroHealth = 28
+        assertEquals(16, me.heroHealth)
+        me.heroHealth = 17
         engine.apply(GameAction.PlayCard(CardPool.healingLight().also { me.hand.cards += it }))
-        assertEquals(30, me.heroHealth, "회복은 30을 넘지 않음")
+        assertEquals(Player.MAX_HERO_HEALTH, me.heroHealth, "회복은 최대 체력을 넘지 않음")
 
         ai.field.cards += CardPool.wolf()   // 2/1
         ai.field.cards += CardPool.bear()   // 4/5
@@ -112,11 +112,11 @@ class GameEngineTest {
 
     @Test fun `탈진 - 빈 덱에서 드로우하면 누적 피해`() {
         val (engine, me, _) = newEngine()
-        me.heroHealth = 30
+        me.heroHealth = Player.MAX_HERO_HEALTH
         engine.draw(me) // fatigue 1
         engine.draw(me) // fatigue 2
         engine.draw(me) // fatigue 3
-        assertEquals(30 - 1 - 2 - 3, me.heroHealth)
+        assertEquals(Player.MAX_HERO_HEALTH - 1 - 2 - 3, me.heroHealth)
     }
 
     @Test fun `한 판 시뮬레이션 - 스크립트 액션 시퀀스가 승리까지 도달`() {
