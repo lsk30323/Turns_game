@@ -20,6 +20,8 @@ sealed class NetAction {
 /** 클라이언트 → 서버. 정식 계정: 온라인 참가 시 구글 ID 토큰으로 인증한다. */
 @Serializable
 sealed class ClientMessage {
+    /** 로그인만 수행(매칭 X) — 로비에서 내 프로필/전적을 받기 위해. 응답: Welcome 또는 AuthError. */
+    @Serializable data class Authenticate(val idToken: String) : ClientMessage()
     /** 빠른 대전 큐 참가. idToken 으로 서버가 신원 검증(표시 이름은 계정에서 가져옴). */
     @Serializable data class QuickMatch(val idToken: String) : ClientMessage()
     /** 방 코드로 참가(없으면 새로 생성). */

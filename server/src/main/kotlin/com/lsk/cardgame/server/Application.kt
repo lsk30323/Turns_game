@@ -58,6 +58,16 @@ fun Application.module(
                     }.getOrNull() ?: continue
 
                     when (message) {
+                        is ClientMessage.Authenticate -> {
+                            // 매칭 없이 로그인만 — 로비에 프로필/전적 표시용.
+                            val verified = verifier.verify(message.idToken)
+                            if (verified == null) {
+                                sink.send(ServerMessage.AuthError("로그인에 실패했습니다 (토큰 검증 실패)"))
+                            } else {
+                                val account = repository.getOrCreate(verified.sub, verified.name)
+                                sink.send(ServerMessage.Welcome(account.toProfile()))
+                            }
+                        }
                         is ClientMessage.QuickMatch -> if (conn == null) {
                             conn = login(message.idToken, sink, verifier, repository) ?: continue
                             matchmaker.quickMatch(conn)

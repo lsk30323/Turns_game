@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.lsk.cardgame.presentation.ui.GameScreen
+import com.lsk.cardgame.presentation.ui.AppRoot
 import com.lsk.cardgame.presentation.ui.theme.TurnsGameTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    GameScreen(modifier = Modifier.safeDrawingPadding())
+                    AppRoot(modifier = Modifier.safeDrawingPadding())
                 }
             }
         }

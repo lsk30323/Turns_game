@@ -42,6 +42,7 @@ import com.lsk.cardgame.presentation.ui.theme.LocalGameColors
 fun GameScreen(
     modifier: Modifier = Modifier,
     viewModel: GameViewModel = viewModel(),
+    onBack: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -54,6 +55,7 @@ fun GameScreen(
         onEnemyHeroTap = viewModel::onEnemyHeroTap,
         onEndTurn = viewModel::onEndTurn,
         onRestart = viewModel::newGame,
+        onBack = onBack,
     )
 }
 
@@ -67,6 +69,9 @@ fun GameScreenContent(
     onEndTurn: () -> Unit,
     onRestart: () -> Unit,
     modifier: Modifier = Modifier,
+    restartLabel: String = "새 게임",
+    showGameOverDialog: Boolean = true,
+    onBack: (() -> Unit)? = null,
 ) {
     val g = LocalGameColors.current
     val interactable = state.phase == Phase.MY_TURN
@@ -88,12 +93,18 @@ fun GameScreenContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(
-                    text = "TURNS",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = g.manaGold,
-                )
-                TextButton(onClick = onRestart) { Text("새 게임") }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (onBack != null) TextButton(onClick = onBack) { Text("← 메뉴") }
+                    Text(
+                        text = "TURNS",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = g.manaGold,
+                    )
+                }
+                TextButton(onClick = onRestart) { Text(restartLabel) }
             }
 
             // 적 영웅 + 적 필드
@@ -165,7 +176,7 @@ fun GameScreenContent(
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 if (state.phase == Phase.AI_TURN) {
                     Text(
-                        text = "AI 턴 진행 중…",
+                        text = "상대 턴 진행 중…",
                         style = MaterialTheme.typography.titleMedium,
                         color = g.manaGold,
                         modifier = Modifier.padding(vertical = 8.dp),
@@ -182,7 +193,7 @@ fun GameScreenContent(
             }
         }
 
-        if (state.phase == Phase.GAME_OVER) {
+        if (showGameOverDialog && state.phase == Phase.GAME_OVER) {
             GameOverDialog(
                 winnerName = state.winnerName,
                 didIWin = state.winnerName == "나",
