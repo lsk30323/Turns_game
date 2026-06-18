@@ -102,9 +102,16 @@ class GameEngine(
                 resolveEffect(it.effect, owner = player, source = card)
             }
         } else { // SPELL
-            card.abilities.filter { it.trigger == Trigger.CAST }.forEach {
-                log("  주문: ${card.name}")
-                resolveEffect(it.effect, owner = player, source = card)
+            val opponent = state.opponentOf(player)
+            if (opponent.spellWard > 0) {
+                // 마법 차단: 상대 보호막이 주문을 무효화(효과 해결 없이 묘지로).
+                opponent.spellWard--
+                log("  ${opponent.name}의 마법 차단! ${card.name}이(가) 무효화됨")
+            } else {
+                card.abilities.filter { it.trigger == Trigger.CAST }.forEach {
+                    log("  주문: ${card.name}")
+                    resolveEffect(it.effect, owner = player, source = card)
+                }
             }
             player.graveyard.cards += card
         }
@@ -184,6 +191,14 @@ class GameEngine(
                     it.health += effect.health
                 }
                 if (targets.isNotEmpty()) log("  ${owner.name} 아군 강화 +${effect.attack}/+${effect.health}")
+            }
+            is Effect.WinGame -> {
+                opponent.heroHealth = 0 // 상대 영웅 패배 처리 → isGameOver/winner 가 승부를 판정.
+                log("  ${owner.name}이(가) 게임에서 승리했습니다!")
+            }
+            is Effect.GainSpellWard -> {
+                owner.spellWard += effect.amount
+                log("  ${owner.name} 마법 차단 +${effect.amount} (상대의 다음 주문 무효화)")
             }
         }
         processDeaths()

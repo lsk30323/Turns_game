@@ -119,6 +119,40 @@ class GameEngineTest {
         assertEquals(Player.MAX_HERO_HEALTH - 1 - 2 - 3, me.heroHealth)
     }
 
+    @Test fun `게임을 이깁니다 - 1코스트 주문이 즉시 승리시킨다`() {
+        val (engine, me, ai) = newEngine()
+        me.mana = 10
+        engine.apply(GameAction.PlayCard(CardPool.instantWin().also { me.hand.cards += it }))
+        assertTrue(ai.heroHealth <= 0, "상대 영웅 패배")
+        assertTrue(engine.isGameOver())
+        assertEquals(me, engine.winner())
+    }
+
+    @Test fun `마법 차단 - 카드를 내면 시전자에게 보호막 1개`() {
+        val (engine, me, _) = newEngine()
+        me.mana = 10
+        engine.apply(GameAction.PlayCard(CardPool.counterspell().also { me.hand.cards += it }))
+        assertEquals(1, me.spellWard)
+    }
+
+    @Test fun `마법 차단 - 상대 보호막이 내 주문을 무효화하고 1개 소모`() {
+        val (engine, me, ai) = newEngine()
+        me.mana = 30
+        ai.spellWard = 1
+        engine.apply(GameAction.PlayCard(CardPool.fireball().also { me.hand.cards += it }))
+        assertEquals(Player.MAX_HERO_HEALTH, ai.heroHealth, "화염구가 무효화되어 피해 없음")
+        assertEquals(0, ai.spellWard, "보호막 1개 소모")
+    }
+
+    @Test fun `마법 차단 - 즉시 승리 주문도 막는다`() {
+        val (engine, me, ai) = newEngine()
+        me.mana = 10
+        ai.spellWard = 1
+        engine.apply(GameAction.PlayCard(CardPool.instantWin().also { me.hand.cards += it }))
+        assertFalse(engine.isGameOver(), "즉시 승리가 마법 차단으로 무효화됨")
+        assertEquals(0, ai.spellWard)
+    }
+
     @Test fun `한 판 시뮬레이션 - 스크립트 액션 시퀀스가 승리까지 도달`() {
         val (engine, me, ai) = newEngine()
         repeat(10) { me.deck.cards += CardPool.fireball() } // 화염구 덱

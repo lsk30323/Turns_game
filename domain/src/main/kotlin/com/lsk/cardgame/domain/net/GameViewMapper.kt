@@ -25,6 +25,8 @@ fun GameEngine.viewFor(you: Player, log: List<String>): GameView {
         opponentHeroHp = opponent.heroHealth,
         yourMana = you.mana,
         yourMaxMana = you.maxMana,
+        yourSpellWard = you.spellWard,
+        opponentSpellWard = opponent.spellWard,
         yourField = you.field.cards.map { it.toMinionView(canAct = yourTurn) },
         opponentField = opponent.field.cards.map { it.toMinionView(canAct = false) },
         yourHand = you.hand.cards.map { it.toHandCardView(you, canPlay = yourTurn) },
@@ -100,6 +102,8 @@ private fun describeEffect(effect: Effect): String = when (effect) {
     is Effect.Heal -> "${targetText(effect.target)} ${effect.amount} 회복"
     is Effect.DrawCards -> "카드 ${effect.count}장 드로우"
     is Effect.Buff -> "${targetText(effect.target)} +${effect.attack}/+${effect.health}"
+    is Effect.WinGame -> "즉시 게임에서 승리"
+    is Effect.GainSpellWard -> "상대의 다음 주문 ${effect.amount}개 무효화"
 }
 
 private fun targetText(target: Target): String = when (target) {

@@ -165,6 +165,8 @@ class GameViewModel : ViewModel() {
             enemyHeroHp = ai.heroHealth,
             myMana = me.mana,
             myMaxMana = me.maxMana,
+            mySpellWard = me.spellWard,
+            enemySpellWard = ai.spellWard,
             myField = me.field.cards.map { it.toMinionUi(selectable = isMyTurn) },
             enemyField = ai.field.cards.map { it.toMinionUi(selectable = false) },
             myHand = me.hand.cards.map { it.toCardUi(canPlay = isMyTurn) },
@@ -221,6 +223,8 @@ class GameViewModel : ViewModel() {
         is Effect.Heal -> "${targetText(effect.target)} ${effect.amount} 회복"
         is Effect.DrawCards -> "카드 ${effect.count}장 드로우"
         is Effect.Buff -> "${targetText(effect.target)} +${effect.attack}/+${effect.health}"
+        is Effect.WinGame -> "즉시 게임에서 승리"
+        is Effect.GainSpellWard -> "상대의 다음 주문 ${effect.amount}개 무효화"
     }
 
     private fun targetText(target: Target): String = when (target) {

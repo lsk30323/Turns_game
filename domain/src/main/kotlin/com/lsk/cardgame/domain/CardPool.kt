@@ -38,9 +38,22 @@ object CardPool {
         listOf(Ability(Trigger.CAST, Effect.DealDamage(3, Target.ALL_ENEMY_MINIONS)))
     )
 
+    /** 1코스트 — 즉시 게임을 이긴다(단, 상대의 "마법 차단"으로 무효화될 수 있음). */
+    fun instantWin() = Card(
+        "instant_win", "게임을 이깁니다", 1, CardType.SPELL, 0, 0,
+        listOf(Ability(Trigger.CAST, Effect.WinGame()))
+    )
+
+    /** 마법 차단 — 상대가 다음에 내는 주문 1개를 무효화한다(즉시 승리 주문도 막음). */
+    fun counterspell() = Card(
+        "counterspell", "마법 차단", 2, CardType.SPELL, 0, 0,
+        listOf(Ability(Trigger.CAST, Effect.GainSpellWard(1)))
+    )
+
     private val factories: List<() -> Card> = listOf(
         ::wolf, ::recruit, ::bear, ::giant, ::pyromancer,
         ::ghost, ::summoner, ::fireball, ::healingLight, ::flamestorm,
+        ::instantWin, ::counterspell,
     )
 
     /** 각 카드 2장씩 = 20장 덱을 만들어 셔플. random 주입으로 테스트 결정론 보장. */

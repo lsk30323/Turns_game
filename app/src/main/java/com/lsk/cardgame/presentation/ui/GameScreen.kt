@@ -102,6 +102,7 @@ fun GameScreenContent(
                 hp = state.enemyHeroHp,
                 handCount = state.enemyHandCount,
                 deckCount = state.enemyDeckCount,
+                spellWard = state.enemySpellWard,
                 isTargetable = state.targetingMode,
                 onClick = if (state.targetingMode) onEnemyHeroTap else null,
             )
@@ -146,6 +147,13 @@ fun GameScreenContent(
                         style = MaterialTheme.typography.titleLarge,
                         color = g.damage,
                     )
+                    if (state.mySpellWard > 0) {
+                        Text(
+                            text = "  🛡${state.mySpellWard}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = g.manaGold,
+                        )
+                    }
                 }
                 ManaIndicator(current = state.myMana, max = state.myMaxMana)
             }

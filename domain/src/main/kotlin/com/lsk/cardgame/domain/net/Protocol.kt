@@ -96,6 +96,8 @@ data class GameView(
     val opponentHeroHp: Int,
     val yourMana: Int,
     val yourMaxMana: Int,
+    val yourSpellWard: Int = 0,
+    val opponentSpellWard: Int = 0,
     val yourField: List<MinionView>,
     val opponentField: List<MinionView>,
     val yourHand: List<HandCardView>,
