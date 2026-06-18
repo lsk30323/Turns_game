@@ -29,3 +29,22 @@ fly deploy
 안드로이드 앱의 서버 주소(`wss://<your-host>/play`)로 설정하면 온라인 대전이 동작한다.
 
 > ⚠️ 무료 티어는 유휴 시 잠자기(cold start) 가 있어 첫 연결이 느릴 수 있다.
+
+## 정식 계정 (구글 로그인 + 전적·랭킹)
+온라인 참가 시 클라이언트가 **구글 ID 토큰**을 보내고, 서버가 검증해 계정을 식별한다.
+게임 종료 시 승/패·레이팅(±25)을 기록하고, `GET /leaderboard` 로 랭킹(JSON)을 제공한다.
+
+**서버 환경변수**
+| 변수 | 설명 |
+|---|---|
+| `GOOGLE_OAUTH_CLIENT_ID` | 앱이 받은 ID 토큰의 audience(= **웹** OAuth 클라이언트 ID). 미설정이면 모든 로그인 실패. |
+| `DATABASE_URL` | Postgres 연결 문자열(`postgres://user:pass@host:port/db`). 미설정이면 인메모리(재시작 시 휘발). |
+
+**본인이 해야 할 Google Cloud 설정 (내가 대신 못 함)**
+1. [Google Cloud Console](https://console.cloud.google.com) → 프로젝트 생성 → OAuth 동의 화면 구성.
+2. 사용자 인증 정보 → OAuth 클라이언트 ID **2개** 생성:
+   - **Android** 용(앱 패키지명 `com.lsk.cardgame` + 서명 키 **SHA-1**). → 앱에서 로그인에 사용.
+   - **웹 애플리케이션** 용. → 이 client ID 를 서버 `GOOGLE_OAUTH_CLIENT_ID` 와 앱의 `serverClientId` 에 넣는다(ID 토큰 audience).
+3. 영속 전적이 필요하면 무료 Postgres(Neon/Supabase/Render) 생성 후 `DATABASE_URL` 설정.
+
+> 엔드포인트: `WS /play`(게임·로그인), `GET /leaderboard`(랭킹), `GET /health`.

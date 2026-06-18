@@ -4,9 +4,9 @@ import com.lsk.cardgame.domain.net.GameView
 import com.lsk.cardgame.domain.net.ServerMessage
 
 /** 메시지를 기록하는 가짜 연결 — 웹소켓 없이 룸/매치메이커 로직을 검증. */
-class RecordingConn(name: String) {
+class RecordingConn(name: String, sub: String? = null) {
     val messages = mutableListOf<ServerMessage>()
-    val conn = PlayerConn(name, ClientSink { messages += it })
+    val conn = PlayerConn(name, ClientSink { messages += it }, userSub = sub)
     fun lastView(): GameView? = messages.filterIsInstance<ServerMessage.State>().lastOrNull()?.view
     fun ended(): ServerMessage.Ended? = messages.filterIsInstance<ServerMessage.Ended>().lastOrNull()
 }

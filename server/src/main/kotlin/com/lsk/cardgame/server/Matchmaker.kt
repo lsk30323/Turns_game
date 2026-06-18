@@ -8,7 +8,10 @@ import kotlinx.coroutines.sync.withLock
  * 매치메이킹 — 빠른 대전 큐(선착 2명 페어링) + 방 코드(친구 초대) 두 방식.
  * 페어링되면 [GameRoom.start] 를 호출해 게임을 시작한다.
  */
-class Matchmaker {
+class Matchmaker(
+    /** 게임 종료 시 승자/패자 연결로 호출(전적 기록·프로필 갱신). */
+    private val onResult: suspend (winner: PlayerConn, loser: PlayerConn) -> Unit = { _, _ -> },
+) {
     private val mutex = Mutex()
     private var quickWaiting: PlayerConn? = null
     private val pendingRooms = mutableMapOf<String, PlayerConn>()
@@ -24,7 +27,7 @@ class Matchmaker {
                 waiting
             }
         }
-        if (opponent == null) conn.send(ServerMessage.Waiting()) else GameRoom(null, opponent, conn).start()
+        if (opponent == null) conn.send(ServerMessage.Waiting()) else GameRoom(null, opponent, conn, onResult = onResult).start()
     }
 
     suspend fun joinRoom(conn: PlayerConn, code: String) {
@@ -39,7 +42,7 @@ class Matchmaker {
                 waiting
             }
         }
-        if (opponent == null) conn.send(ServerMessage.Waiting(normalized)) else GameRoom(normalized, opponent, conn).start()
+        if (opponent == null) conn.send(ServerMessage.Waiting(normalized)) else GameRoom(normalized, opponent, conn, onResult = onResult).start()
     }
 
     /** 페어링 전에 연결이 끊기면 대기열/방에서 제거. */

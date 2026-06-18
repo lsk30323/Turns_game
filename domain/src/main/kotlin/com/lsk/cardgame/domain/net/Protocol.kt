@@ -17,28 +17,53 @@ sealed class NetAction {
     @Serializable data object EndTurn : NetAction()
 }
 
-/** 클라이언트 → 서버 */
+/** 클라이언트 → 서버. 정식 계정: 온라인 참가 시 구글 ID 토큰으로 인증한다. */
 @Serializable
 sealed class ClientMessage {
-    /** 빠른 대전 큐 참가(이름 표시용). */
-    @Serializable data class QuickMatch(val playerName: String) : ClientMessage()
+    /** 빠른 대전 큐 참가. idToken 으로 서버가 신원 검증(표시 이름은 계정에서 가져옴). */
+    @Serializable data class QuickMatch(val idToken: String) : ClientMessage()
     /** 방 코드로 참가(없으면 새로 생성). */
-    @Serializable data class JoinRoom(val playerName: String, val code: String) : ClientMessage()
+    @Serializable data class JoinRoom(val idToken: String, val code: String) : ClientMessage()
     @Serializable data class Play(val action: NetAction) : ClientMessage()
+    @Serializable data object RequestLeaderboard : ClientMessage()
     @Serializable data object Leave : ClientMessage()
 }
 
 /** 서버 → 클라이언트 */
 @Serializable
 sealed class ServerMessage {
+    /** 로그인 성공 — 내 프로필/전적 전달. */
+    @Serializable data class Welcome(val profile: Profile) : ServerMessage()
+    /** 인증 실패(토큰 누락/만료/대상 불일치 등). */
+    @Serializable data class AuthError(val message: String) : ServerMessage()
     /** 상대를 기다리는 중(roomCode 가 있으면 친구에게 공유). */
     @Serializable data class Waiting(val roomCode: String? = null) : ServerMessage()
     @Serializable data class Started(val yourName: String, val opponentName: String) : ServerMessage()
     @Serializable data class State(val view: GameView) : ServerMessage()
-    @Serializable data class Ended(val winnerName: String?, val youWon: Boolean) : ServerMessage()
+    /** 게임 종료 — 결과 + 갱신된 내 프로필(전적·레이팅 반영). */
+    @Serializable data class Ended(val winnerName: String?, val youWon: Boolean, val profile: Profile? = null) : ServerMessage()
     @Serializable data object OpponentLeft : ServerMessage()
+    @Serializable data class Leaderboard(val entries: List<LeaderboardEntry>) : ServerMessage()
     @Serializable data class Error(val message: String) : ServerMessage()
 }
+
+/** 내 계정 프로필/전적. */
+@Serializable
+data class Profile(
+    val displayName: String,
+    val wins: Int,
+    val losses: Int,
+    val rating: Int,
+)
+
+@Serializable
+data class LeaderboardEntry(
+    val rank: Int,
+    val displayName: String,
+    val wins: Int,
+    val losses: Int,
+    val rating: Int,
+)
 
 enum class NetPhase { YOUR_TURN, OPPONENT_TURN, GAME_OVER }
 

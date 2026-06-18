@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.logback.classic)
+    implementation(libs.postgresql) // 정식 계정 영속화(DATABASE_URL 설정 시)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)

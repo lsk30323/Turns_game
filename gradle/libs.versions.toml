@@ -12,6 +12,7 @@ kotlinxCoroutinesTest = "1.9.0"
 kotlinxSerialization = "1.7.3"
 ktor = "3.0.1"
 logback = "1.5.12"
+postgresql = "42.7.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +38,7 @@ ktor-server-status-pages = { group = "io.ktor", name = "ktor-server-status-pages
 ktor-server-test-host = { group = "io.ktor", name = "ktor-server-test-host", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback" }
+postgresql = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql" }
 
 # Ktor 클라이언트 (안드로이드 앱 ↔ 서버 WebSocket)
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }

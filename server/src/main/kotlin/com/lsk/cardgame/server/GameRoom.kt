@@ -18,8 +18,8 @@ fun interface ClientSink {
     suspend fun send(msg: ServerMessage)
 }
 
-/** 한 플레이어의 연결. 매칭되면 [room] 이 설정된다. */
-class PlayerConn(val name: String, private val sink: ClientSink) {
+/** 한 플레이어의 연결. 매칭되면 [room] 이 설정된다. [userSub] 는 정식 계정 식별자(전적 기록용). */
+class PlayerConn(val name: String, private val sink: ClientSink, val userSub: String? = null) {
     @Volatile
     var room: GameRoom? = null
 
@@ -35,6 +35,8 @@ class GameRoom(
     private val connA: PlayerConn,
     private val connB: PlayerConn,
     random: Random = Random(System.nanoTime()),
+    /** 게임 종료 시 승자/패자 연결로 호출(전적 기록·프로필 갱신 통지용). */
+    private val onResult: suspend (winner: PlayerConn, loser: PlayerConn) -> Unit = { _, _ -> },
 ) {
     private val playerA = Player(connA.name).apply { deck.cards += CardPool.buildDeck(random) }
     private val playerB = Player(connB.name).apply { deck.cards += CardPool.buildDeck(random) }
@@ -108,6 +110,11 @@ class GameRoom(
         val winner = mutex.withLock { engine.winner() }
         connA.send(ServerMessage.Ended(winner?.name, youWon = winner === playerA))
         connB.send(ServerMessage.Ended(winner?.name, youWon = winner === playerB))
+        if (winner != null) {
+            val winnerConn = if (winner === playerA) connA else connB
+            val loserConn = if (winner === playerA) connB else connA
+            onResult(winnerConn, loserConn)
+        }
     }
 
     companion object {

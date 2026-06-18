@@ -63,4 +63,26 @@ class GameRoomTest {
         // 정확히 한쪽만 승리(탈진으로 한 명이 먼저 죽음).
         assertTrue(endedA.youWon != endedB.youWon, "승자는 한 명")
     }
+
+    @Test fun onResultFiresWithWinnerAndLoserSubsAtGameEnd() = runTest {
+        val a = RecordingConn("A", sub = "subA")
+        val b = RecordingConn("B", sub = "subB")
+        var recorded: Pair<String?, String?>? = null
+        val room = GameRoom("ROOM", a.conn, b.conn, Random(7), onResult = { w, l ->
+            recorded = w.userSub to l.userSub
+        })
+        room.start()
+
+        var guard = 0
+        while (a.ended() == null && guard++ < 500) {
+            when {
+                a.lastView()?.isYourTurn == true -> room.onAction(a.conn, NetAction.EndTurn)
+                b.lastView()?.isYourTurn == true -> room.onAction(b.conn, NetAction.EndTurn)
+                else -> break
+            }
+        }
+        assertNotNull(recorded, "게임 종료 시 onResult 가 호출되어야 함")
+        val expectedWinner = if (a.ended()!!.youWon) "subA" else "subB"
+        assertEquals(expectedWinner, recorded.first, "승자 sub 가 결과 기록으로 전달")
+    }
 }
