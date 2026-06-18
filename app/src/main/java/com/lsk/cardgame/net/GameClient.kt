@@ -38,12 +38,14 @@ class GameClient(private val baseUrl: String) {
             try {
                 http.webSocket(urlString = "${baseUrl.trimEnd('/')}/play") {
                     val sender = launch {
-                        for (message in outgoing) {
+                        while (true) {
+                            val message = outgoing.receiveCatching().getOrNull() ?: break
                             send(Frame.Text(ProtocolJson.encodeToString(ClientMessage.serializer(), message)))
                         }
                     }
                     try {
-                        for (frame in incoming) {
+                        while (true) {
+                            val frame = incoming.receiveCatching().getOrNull() ?: break
                             if (frame is Frame.Text) {
                                 val parsed = runCatching {
                                     ProtocolJson.decodeFromString(ServerMessage.serializer(), frame.readText())
