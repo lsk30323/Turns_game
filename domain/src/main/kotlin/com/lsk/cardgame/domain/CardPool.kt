@@ -50,16 +50,24 @@ object CardPool {
         listOf(Ability(Trigger.CAST, Effect.GainSpellWard(1)))
     )
 
-    private val factories: List<() -> Card> = listOf(
+    private val standardFactories: List<() -> Card> = listOf(
         ::wolf, ::recruit, ::bear, ::giant, ::pyromancer,
         ::ghost, ::summoner, ::fireball, ::healingLight, ::flamestorm,
+    )
+
+    /** 강력한 희귀 카드 — 덱에 1장만 넣어 가끔 등장하는 변수로. */
+    private val rareFactories: List<() -> Card> = listOf(
         ::instantWin, ::counterspell,
     )
 
-    /** 각 카드 2장씩 = 20장 덱을 만들어 셔플. random 주입으로 테스트 결정론 보장. */
+    /** 전체 카드 정의 목록(도감/설명용). */
+    val factories: List<() -> Card> = standardFactories + rareFactories
+
+    /** 일반 카드 2장 + 희귀 카드 1장씩 = 22장 덱을 만들어 셔플. random 주입으로 테스트 결정론 보장. */
     fun buildDeck(random: Random): MutableList<Card> {
         val deck = mutableListOf<Card>()
-        factories.forEach { f -> repeat(2) { deck += f() } }
+        standardFactories.forEach { f -> repeat(2) { deck += f() } }
+        rareFactories.forEach { f -> deck += f() }
         deck.shuffle(random)
         return deck
     }
