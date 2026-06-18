@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  */
 class GameClient(private val baseUrl: String) {
     private val http = HttpClient(OkHttp) { install(WebSockets) }
-    private val outgoing = Channel<ClientMessage>(Channel.BUFFERED)
+    private val outbox = Channel<ClientMessage>(Channel.BUFFERED)
 
     // replay 버퍼로 수신 메시지를 보관 → 수집 구독이 연결보다 약간 늦어도(레이스) 메시지를 놓치지 않는다.
     // GameClient 인스턴스 = 단일 연결·단일 구독자이므로 replay 재전달 부작용 없음.
@@ -39,7 +39,7 @@ class GameClient(private val baseUrl: String) {
                 http.webSocket(urlString = "${baseUrl.trimEnd('/')}/play") {
                     val sender = launch {
                         while (true) {
-                            val message = outgoing.receiveCatching().getOrNull() ?: break
+                            val message = outbox.receiveCatching().getOrNull() ?: break
                             send(Frame.Text(ProtocolJson.encodeToString(ClientMessage.serializer(), message)))
                         }
                     }
@@ -64,11 +64,11 @@ class GameClient(private val baseUrl: String) {
     }
 
     suspend fun send(message: ClientMessage) {
-        outgoing.send(message)
+        outbox.send(message)
     }
 
     fun close() {
-        outgoing.close()
+        outbox.close()
         sessionJob?.cancel()
         http.close()
     }
