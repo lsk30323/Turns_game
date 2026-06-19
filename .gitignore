@@ -15,3 +15,6 @@ captures/
 local.properties
 .DS_Store
 .verify/.kotlin/
+
+# Kotlin compiler local cache/error logs
+.kotlin/
