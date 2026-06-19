@@ -28,6 +28,8 @@ sealed class ClientMessage {
     @Serializable data class JoinRoom(val idToken: String, val code: String) : ClientMessage()
     @Serializable data class Play(val action: NetAction) : ClientMessage()
     @Serializable data object RequestLeaderboard : ClientMessage()
+    /** 항복 — 즉시 패배 처리(전적에 패로 기록). */
+    @Serializable data object Surrender : ClientMessage()
     @Serializable data object Leave : ClientMessage()
 }
 
@@ -45,6 +47,10 @@ sealed class ServerMessage {
     /** 게임 종료 — 결과 + 갱신된 내 프로필(전적·레이팅 반영). */
     @Serializable data class Ended(val winnerName: String?, val youWon: Boolean, val profile: Profile? = null) : ServerMessage()
     @Serializable data object OpponentLeft : ServerMessage()
+    /** 상대 연결이 끊겨 재접속을 기다리는 중([graceSeconds] 초 내 복귀하지 않으면 내 승리). */
+    @Serializable data class OpponentDisconnected(val graceSeconds: Int) : ServerMessage()
+    /** 끊겼던 상대가 재접속함. */
+    @Serializable data object OpponentReconnected : ServerMessage()
     @Serializable data class Leaderboard(val entries: List<LeaderboardEntry>) : ServerMessage()
     @Serializable data class Error(val message: String) : ServerMessage()
 }

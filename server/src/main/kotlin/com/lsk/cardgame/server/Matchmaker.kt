@@ -1,6 +1,9 @@
 package com.lsk.cardgame.server
 
 import com.lsk.cardgame.domain.net.ServerMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -11,6 +14,10 @@ import kotlinx.coroutines.sync.withLock
 class Matchmaker(
     /** 게임 종료 시 승자/패자 연결로 호출(전적 기록·프로필 갱신). */
     private val onResult: suspend (winner: PlayerConn, loser: PlayerConn) -> Unit = { _, _ -> },
+    /** 게임 룸의 재접속 타이머용 스코프(서버 애플리케이션 스코프). */
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    /** 진행 중인 게임 추적(재접속용). */
+    private val registry: GameRegistry? = null,
 ) {
     private val mutex = Mutex()
     private var quickWaiting: PlayerConn? = null
@@ -27,7 +34,8 @@ class Matchmaker(
                 waiting
             }
         }
-        if (opponent == null) conn.send(ServerMessage.Waiting()) else GameRoom(null, opponent, conn, onResult = onResult).start()
+        if (opponent == null) conn.send(ServerMessage.Waiting()) else
+            GameRoom(null, opponent, conn, onResult = onResult, scope = scope, registry = registry).start()
     }
 
     suspend fun joinRoom(conn: PlayerConn, code: String) {
@@ -42,7 +50,8 @@ class Matchmaker(
                 waiting
             }
         }
-        if (opponent == null) conn.send(ServerMessage.Waiting(normalized)) else GameRoom(normalized, opponent, conn, onResult = onResult).start()
+        if (opponent == null) conn.send(ServerMessage.Waiting(normalized)) else
+            GameRoom(normalized, opponent, conn, onResult = onResult, scope = scope, registry = registry).start()
     }
 
     /** 페어링 전에 연결이 끊기면 대기열/방에서 제거. */

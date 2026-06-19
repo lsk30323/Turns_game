@@ -32,8 +32,11 @@ class GameClient(private val baseUrl: String) {
 
     private var sessionJob: Job? = null
 
-    /** 세션을 연다. 수신 프레임은 [messages] 로 emit, [send] 로 큐잉된 메시지는 송신된다. */
-    fun connect(scope: CoroutineScope) {
+    /**
+     * 세션을 연다. 수신 프레임은 [messages] 로 emit, [send] 로 큐잉된 메시지는 송신된다.
+     * 세션이 끝나면(정상 종료·오류 모두) [onClosed] 가 호출된다(재접속 트리거용).
+     */
+    fun connect(scope: CoroutineScope, onClosed: () -> Unit = {}) {
         sessionJob = scope.launch(Dispatchers.IO) {
             try {
                 http.webSocket(urlString = "${baseUrl.trimEnd('/')}/play") {
@@ -58,7 +61,9 @@ class GameClient(private val baseUrl: String) {
                     }
                 }
             } catch (e: Throwable) {
-                _messages.emit(ServerMessage.Error("서버 연결 오류: ${e.message ?: "알 수 없음"}"))
+                runCatching { _messages.emit(ServerMessage.Error("서버 연결 오류: ${e.message ?: "알 수 없음"}")) }
+            } finally {
+                onClosed()
             }
         }
     }

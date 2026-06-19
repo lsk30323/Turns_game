@@ -1,6 +1,8 @@
 package com.lsk.cardgame.presentation.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -77,18 +79,31 @@ fun OnlineScreen(
             modifier = modifier,
         )
         is OnlineScreenState.Waiting -> WaitingView(s.roomCode, viewModel::backToLobby, modifier)
-        is OnlineScreenState.InGame -> GameScreenContent(
-            state = s.game,
-            onHandCardTap = viewModel::onHandCardTap,
-            onMyMinionTap = viewModel::onMyMinionTap,
-            onEnemyMinionTap = viewModel::onEnemyMinionTap,
-            onEnemyHeroTap = viewModel::onEnemyHeroTap,
-            onEndTurn = viewModel::onEndTurn,
-            onRestart = viewModel::backToLobby,
-            modifier = modifier,
-            restartLabel = "나가기",
-            showGameOverDialog = false,
-        )
+        is OnlineScreenState.InGame -> Box(modifier) {
+            GameScreenContent(
+                state = s.game,
+                onHandCardTap = viewModel::onHandCardTap,
+                onMyMinionTap = viewModel::onMyMinionTap,
+                onEnemyMinionTap = viewModel::onEnemyMinionTap,
+                onEnemyHeroTap = viewModel::onEnemyHeroTap,
+                onEndTurn = viewModel::onEndTurn,
+                onRestart = viewModel::surrender,
+                restartLabel = "항복",
+                showGameOverDialog = false,
+            )
+            if (s.notice != null) {
+                Text(
+                    text = s.notice,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp),
+                )
+            }
+        }
         is OnlineScreenState.Finished -> FinishedView(
             youWon = s.youWon,
             winnerName = s.winnerName,

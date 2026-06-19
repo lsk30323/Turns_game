@@ -15,6 +15,7 @@ import com.lsk.cardgame.presentation.model.GameUiState
 import com.lsk.cardgame.presentation.model.MinionUi
 import com.lsk.cardgame.presentation.model.Phase
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +28,7 @@ sealed interface OnlineScreenState {
     data class Connecting(val message: String) : OnlineScreenState
     data class Lobby(val profile: Profile, val notice: String? = null) : OnlineScreenState
     data class Waiting(val roomCode: String?) : OnlineScreenState
-    data class InGame(val game: GameUiState, val opponentName: String) : OnlineScreenState
+    data class InGame(val game: GameUiState, val opponentName: String, val notice: String? = null) : OnlineScreenState
     data class Finished(val youWon: Boolean, val winnerName: String?, val profile: Profile?, val notice: String? = null) : OnlineScreenState
     data class LeaderboardView(val entries: List<LeaderboardEntry>, val profile: Profile?) : OnlineScreenState
     data class Failed(val message: String) : OnlineScreenState
@@ -42,7 +43,7 @@ class OnlineGameViewModel : ViewModel() {
     private val _state = MutableStateFlow<OnlineScreenState>(OnlineScreenState.SignedOut())
     val state: StateFlow<OnlineScreenState> = _state.asStateFlow()
 
-    private var client: GameClient? = null
+    @Volatile private var client: GameClient? = null
     private var collectJob: Job? = null
 
     private var idToken: String? = null
@@ -54,6 +55,12 @@ class OnlineGameViewModel : ViewModel() {
     private var selectedAttacker: Long? = null
     /** true 인 동안 Welcome 은 로비로 전환하지 않는다(매칭 진행 중). */
     private var awaitingMatch = false
+    /** 예기치 않은 연결 종료 시 자동 재접속 시도 횟수. */
+    private var reconnectAttempts = 0
+
+    private companion object {
+        const val MAX_RECONNECTS = 6
+    }
 
     // ───────────────── 로그인 / 연결 ─────────────────
 
@@ -61,6 +68,7 @@ class OnlineGameViewModel : ViewModel() {
     fun start(idToken: String, serverUrl: String) {
         this.idToken = idToken
         this.serverUrl = serverUrl
+        reconnectAttempts = 0
         openConnection(ClientMessage.Authenticate(idToken), connectingMessage = "로그인 중…")
     }
 
@@ -75,9 +83,32 @@ class OnlineGameViewModel : ViewModel() {
         _state.value = OnlineScreenState.Connecting(connectingMessage)
         val newClient = GameClient(serverUrl)
         client = newClient
-        newClient.connect(viewModelScope)
+        newClient.connect(viewModelScope, onClosed = { handleClosed(newClient) })
         collectJob = viewModelScope.launch { newClient.messages.collect { handle(it) } }
         viewModelScope.launch { newClient.send(firstMessage) }
+    }
+
+    /** 세션이 예기치 않게 끊겼을 때(현재 클라이언트일 때만) 자동 재접속 시도. */
+    private fun handleClosed(closedClient: GameClient) {
+        if (closedClient !== client) return // 의도적 종료/이전 연결 → 무시
+        val token = idToken ?: return
+        val resumable = when (_state.value) {
+            is OnlineScreenState.InGame, is OnlineScreenState.Waiting,
+            is OnlineScreenState.Lobby, is OnlineScreenState.Connecting -> true
+            else -> false
+        }
+        if (!resumable) return
+        if (reconnectAttempts >= MAX_RECONNECTS) {
+            _state.value = OnlineScreenState.Failed("서버 연결이 끊겼습니다. 다시 시도해주세요.")
+            return
+        }
+        reconnectAttempts++
+        viewModelScope.launch {
+            delay(minOf(2000L * reconnectAttempts, 8000L))
+            if (idToken == null) return@launch
+            // Authenticate → 진행 중 게임이 있으면 서버가 Started+State 로 재개시킨다.
+            openConnection(ClientMessage.Authenticate(token), "재접속 중… ($reconnectAttempts/$MAX_RECONNECTS)")
+        }
     }
 
     // ───────────────── 로비 액션 ─────────────────
@@ -130,7 +161,8 @@ class OnlineGameViewModel : ViewModel() {
         val view = lastView ?: return
         if (!view.isYourTurn) return
         selectedAttacker = if (selectedAttacker == minionId) null else minionId
-        _state.value = OnlineScreenState.InGame(view.toUiState(selectedAttacker), opponentName)
+        val notice = (_state.value as? OnlineScreenState.InGame)?.notice
+        _state.value = OnlineScreenState.InGame(view.toUiState(selectedAttacker), opponentName, notice)
     }
 
     fun onEnemyMinionTap(minionId: Long) {
@@ -150,6 +182,12 @@ class OnlineGameViewModel : ViewModel() {
         send(ClientMessage.Play(NetAction.EndTurn))
     }
 
+    /** 항복 — 서버가 즉시 패배 처리(Ended 수신 → 결과 화면). */
+    fun surrender() {
+        selectedAttacker = null
+        send(ClientMessage.Surrender)
+    }
+
     // ───────────────── 서버 메시지 처리 ─────────────────
 
     private fun handle(message: ServerMessage) {
@@ -159,7 +197,9 @@ class OnlineGameViewModel : ViewModel() {
                 profile = p
                 _state.update { cur ->
                     when (cur) {
-                        is OnlineScreenState.Connecting -> if (awaitingMatch) cur else OnlineScreenState.Lobby(p)
+                        is OnlineScreenState.Connecting -> if (awaitingMatch) cur else {
+                            reconnectAttempts = 0; OnlineScreenState.Lobby(p)
+                        }
                         is OnlineScreenState.Lobby -> OnlineScreenState.Lobby(p, cur.notice)
                         is OnlineScreenState.LeaderboardView -> cur.copy(profile = p)
                         is OnlineScreenState.Finished -> cur.copy(profile = p) // 결과 화면 전적 갱신
@@ -177,10 +217,12 @@ class OnlineGameViewModel : ViewModel() {
             }
             is ServerMessage.Started -> {
                 awaitingMatch = false
+                reconnectAttempts = 0
                 opponentName = message.opponentName
             }
             is ServerMessage.State -> {
                 awaitingMatch = false
+                reconnectAttempts = 0
                 lastView = message.view
                 selectedAttacker = null
                 _state.value = OnlineScreenState.InGame(message.view.toUiState(null), opponentName)
@@ -194,6 +236,16 @@ class OnlineGameViewModel : ViewModel() {
                     youWon = true, winnerName = null, profile = profile, notice = "상대가 나갔습니다",
                 )
             }
+            is ServerMessage.OpponentDisconnected -> {
+                _state.update { cur ->
+                    if (cur is OnlineScreenState.InGame) {
+                        cur.copy(notice = "상대 연결 끊김 — ${message.graceSeconds}초 내 미복귀 시 내 승리")
+                    } else cur
+                }
+            }
+            ServerMessage.OpponentReconnected -> {
+                _state.update { cur -> if (cur is OnlineScreenState.InGame) cur.copy(notice = null) else cur }
+            }
             is ServerMessage.Leaderboard -> {
                 _state.value = OnlineScreenState.LeaderboardView(message.entries, profile)
             }
@@ -205,7 +257,7 @@ class OnlineGameViewModel : ViewModel() {
 
     private fun send(message: ClientMessage) {
         val c = client ?: return
-        viewModelScope.launch { c.send(message) }
+        viewModelScope.launch { runCatching { c.send(message) } }
     }
 
     private fun closeClient() {

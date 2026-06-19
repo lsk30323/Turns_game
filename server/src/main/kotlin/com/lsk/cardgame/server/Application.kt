@@ -29,16 +29,22 @@ fun Application.module(
 ) {
     install(WebSockets)
 
+    val registry = GameRegistry()
+
     // 게임 종료 시 전적·레이팅 기록 후 갱신된 프로필을 양쪽에 통지.
-    val matchmaker = Matchmaker(onResult = { winner, loser ->
-        val ws = winner.userSub
-        val ls = loser.userSub
-        if (ws != null && ls != null) {
-            val (updatedWinner, updatedLoser) = repository.recordResult(ws, ls)
-            runCatching { winner.send(ServerMessage.Welcome(updatedWinner.toProfile())) }
-            runCatching { loser.send(ServerMessage.Welcome(updatedLoser.toProfile())) }
-        }
-    })
+    val matchmaker = Matchmaker(
+        onResult = { winner, loser ->
+            val ws = winner.userSub
+            val ls = loser.userSub
+            if (ws != null && ls != null) {
+                val (updatedWinner, updatedLoser) = repository.recordResult(ws, ls)
+                runCatching { winner.send(ServerMessage.Welcome(updatedWinner.toProfile())) }
+                runCatching { loser.send(ServerMessage.Welcome(updatedLoser.toProfile())) }
+            }
+        },
+        scope = this,
+        registry = registry,
+    )
 
     routing {
         get("/health") { call.respondText("ok") }
@@ -59,13 +65,16 @@ fun Application.module(
 
                     when (message) {
                         is ClientMessage.Authenticate -> {
-                            // 매칭 없이 로그인만 — 로비에 프로필/전적 표시용.
+                            // 로그인(프로필) + 진행 중 게임이 있으면 재합류.
                             val verified = verifier.verify(message.idToken)
                             if (verified == null) {
                                 sink.send(ServerMessage.AuthError("로그인에 실패했습니다 (토큰 검증 실패)"))
                             } else {
                                 val account = repository.getOrCreate(verified.sub, verified.name)
                                 sink.send(ServerMessage.Welcome(account.toProfile()))
+                                // 끊겼던 게임이 살아 있으면 재접속(현재 상태 재전송).
+                                val resumed = registry.find(account.sub)?.reattach(account.sub, sink)
+                                if (resumed != null) conn = resumed
                             }
                         }
                         is ClientMessage.QuickMatch -> if (conn == null) {
@@ -79,11 +88,13 @@ fun Application.module(
                         is ClientMessage.Play -> conn?.let { it.room?.onAction(it, message.action) }
                         ClientMessage.RequestLeaderboard ->
                             sink.send(ServerMessage.Leaderboard(repository.leaderboard()))
+                        ClientMessage.Surrender -> conn?.let { it.room?.surrender(it) }
                         ClientMessage.Leave -> break
                     }
                 }
             } finally {
-                conn?.let { c -> c.room?.onLeave(c) ?: matchmaker.cancelWaiting(c) }
+                // 게임 중이면 재접속 유예(onDisconnect), 대기열이면 큐에서 제거.
+                conn?.let { c -> c.room?.onDisconnect(c) ?: matchmaker.cancelWaiting(c) }
             }
         }
     }
