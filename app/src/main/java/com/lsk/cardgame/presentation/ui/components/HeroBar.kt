@@ -34,6 +34,7 @@ fun HeroBar(
     modifier: Modifier = Modifier,
     handCount: Int? = null,
     deckCount: Int? = null,
+    spellWard: Int = 0,
     isTargetable: Boolean = false,
     onClick: (() -> Unit)? = null,
 ) {
@@ -57,6 +58,7 @@ fun HeroBar(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
+        if (spellWard > 0) CountChip(label = "🛡", value = spellWard)
         deckCount?.let { CountChip(label = "덱", value = it) }
         handCount?.let { CountChip(label = "손", value = it) }
         HeroHealth(hp)

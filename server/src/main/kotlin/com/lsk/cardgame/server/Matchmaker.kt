@@ -1,0 +1,64 @@
+package com.lsk.cardgame.server
+
+import com.lsk.cardgame.domain.net.ServerMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * 매치메이킹 — 빠른 대전 큐(선착 2명 페어링) + 방 코드(친구 초대) 두 방식.
+ * 페어링되면 [GameRoom.start] 를 호출해 게임을 시작한다.
+ */
+class Matchmaker(
+    /** 게임 종료 시 승자/패자 연결로 호출(전적 기록·프로필 갱신). */
+    private val onResult: suspend (winner: PlayerConn, loser: PlayerConn) -> Unit = { _, _ -> },
+    /** 게임 룸의 재접속 타이머용 스코프(서버 애플리케이션 스코프). */
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    /** 진행 중인 게임 추적(재접속용). */
+    private val registry: GameRegistry? = null,
+) {
+    private val mutex = Mutex()
+    private var quickWaiting: PlayerConn? = null
+    private val pendingRooms = mutableMapOf<String, PlayerConn>()
+
+    suspend fun quickMatch(conn: PlayerConn) {
+        val opponent = mutex.withLock {
+            val waiting = quickWaiting
+            if (waiting == null || waiting === conn) {
+                quickWaiting = conn
+                null
+            } else {
+                quickWaiting = null
+                waiting
+            }
+        }
+        if (opponent == null) conn.send(ServerMessage.Waiting()) else
+            GameRoom(null, opponent, conn, onResult = onResult, scope = scope, registry = registry).start()
+    }
+
+    suspend fun joinRoom(conn: PlayerConn, code: String) {
+        val normalized = code.trim().uppercase()
+        val opponent = mutex.withLock {
+            val waiting = pendingRooms[normalized]
+            if (waiting == null) {
+                pendingRooms[normalized] = conn
+                null
+            } else {
+                pendingRooms.remove(normalized)
+                waiting
+            }
+        }
+        if (opponent == null) conn.send(ServerMessage.Waiting(normalized)) else
+            GameRoom(normalized, opponent, conn, onResult = onResult, scope = scope, registry = registry).start()
+    }
+
+    /** 페어링 전에 연결이 끊기면 대기열/방에서 제거. */
+    suspend fun cancelWaiting(conn: PlayerConn) {
+        mutex.withLock {
+            if (quickWaiting === conn) quickWaiting = null
+            pendingRooms.entries.removeIf { it.value === conn }
+        }
+    }
+}
