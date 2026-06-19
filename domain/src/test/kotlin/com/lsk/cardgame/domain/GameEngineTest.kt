@@ -153,6 +153,30 @@ class GameEngineTest {
         assertEquals(0, ai.spellWard)
     }
 
+    @Test fun `추가 카드 - 견습생 드로우, 사제 회복, 비전지식 2장, 번개 3피해`() {
+        val (engine, me, ai) = newEngine()
+        me.mana = 30
+
+        me.deck.cards += CardPool.wolf()
+        val deckBefore = me.deck.size
+        engine.apply(GameAction.PlayCard(CardPool.apprentice().also { me.hand.cards += it }))
+        assertEquals(deckBefore - 1, me.deck.size, "견습생 전투의 함성 드로우")
+        assertTrue(me.field.cards.any { it.defId == "apprentice" })
+
+        me.heroHealth = 10
+        engine.apply(GameAction.PlayCard(CardPool.cleric().also { me.hand.cards += it }))
+        assertEquals(14, me.heroHealth, "사제 전투의 함성 4 회복")
+
+        me.deck.cards += CardPool.wolf(); me.deck.cards += CardPool.bear()
+        val deck2 = me.deck.size
+        engine.apply(GameAction.PlayCard(CardPool.arcaneIntellect().also { me.hand.cards += it }))
+        assertEquals(deck2 - 2, me.deck.size, "비전 지식 2장 드로우")
+
+        val aiHp = ai.heroHealth
+        engine.apply(GameAction.PlayCard(CardPool.lightning().also { me.hand.cards += it }))
+        assertEquals(aiHp - 3, ai.heroHealth, "번개 적 영웅 3 피해")
+    }
+
     @Test fun `한 판 시뮬레이션 - 스크립트 액션 시퀀스가 승리까지 도달`() {
         val (engine, me, ai) = newEngine()
         repeat(10) { me.deck.cards += CardPool.fireball() } // 화염구 덱

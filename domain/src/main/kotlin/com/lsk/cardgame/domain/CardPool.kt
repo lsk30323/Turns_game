@@ -38,6 +38,29 @@ object CardPool {
         listOf(Ability(Trigger.CAST, Effect.DealDamage(3, Target.ALL_ENEMY_MINIONS)))
     )
 
+    // ── 추가 카드 (기존 효과만 재사용 — 클라이언트 타겟팅 불필요) ──
+    fun apprentice() = Card(
+        "apprentice", "견습생", 1, CardType.MINION, 1, 1,
+        listOf(Ability(Trigger.BATTLECRY, Effect.DrawCards(1)))
+    )
+    fun knight() = Card("knight", "기사", 4, CardType.MINION, 4, 4)
+    fun cleric() = Card(
+        "cleric", "사제", 3, CardType.MINION, 3, 2,
+        listOf(Ability(Trigger.BATTLECRY, Effect.Heal(4, Target.OWNER_HERO)))
+    )
+    fun warlord() = Card(
+        "warlord", "장군", 5, CardType.MINION, 4, 5,
+        listOf(Ability(Trigger.BATTLECRY, Effect.Buff(1, 1, Target.ALL_FRIENDLY_MINIONS)))
+    )
+    fun arcaneIntellect() = Card(
+        "arcane_intellect", "비전 지식", 3, CardType.SPELL, 0, 0,
+        listOf(Ability(Trigger.CAST, Effect.DrawCards(2)))
+    )
+    fun lightning() = Card(
+        "lightning", "번개", 2, CardType.SPELL, 0, 0,
+        listOf(Ability(Trigger.CAST, Effect.DealDamage(3, Target.ENEMY_HERO)))
+    )
+
     /** 1코스트 — 즉시 게임을 이긴다(단, 상대의 "마법 차단"으로 무효화될 수 있음). */
     fun instantWin() = Card(
         "instant_win", "게임을 이깁니다", 1, CardType.SPELL, 0, 0,
@@ -53,6 +76,7 @@ object CardPool {
     private val standardFactories: List<() -> Card> = listOf(
         ::wolf, ::recruit, ::bear, ::giant, ::pyromancer,
         ::ghost, ::summoner, ::fireball, ::healingLight, ::flamestorm,
+        ::apprentice, ::knight, ::cleric, ::warlord, ::arcaneIntellect, ::lightning,
     )
 
     /** 강력한 희귀 카드 — 덱에 1장만 넣어 가끔 등장하는 변수로. */
